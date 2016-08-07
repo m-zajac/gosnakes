@@ -43,12 +43,12 @@ func (s Snake) InBody(c [2]int) bool {
 }
 
 func (s Snake) Move(m Move) (Snake, error) {
+	s.Tail = s.Tail.Copy() // new tail slice
 	newHead := moveCell(s.Head, m)
 	if s.InTail(newHead) {
 		return s, errors.New("self collision")
 	}
 
-	s.Tail = s.Tail.Copy() // new tail slice
 	if len(s.Tail) > 0 {
 		copy(s.Tail[1:], s.Tail)
 		s.Tail[0] = s.Head
