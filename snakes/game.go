@@ -1,19 +1,34 @@
 package snakes
 
 import (
+	"encoding"
+	"encoding/json"
 	"errors"
 	"fmt"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 type Game interface {
 	Next() error
 	Board() Board
+
+	encoding.TextMarshaler
 }
 
 type game struct {
-	players           []Player
-	board             Board
-	activePlayerIndex int
+	ID                string   `json:"id"`
+	Players           []Player `json:"-"`
+	GameBoard         Board    `json:"board"`
+	ActivePlayerIndex int      `json:"activePlayerIndex"`
+}
+
+// for json marshall - raw struct without encoding.TextMarshaler
+type jsonGame game
+
+type marshaledGame struct {
+	jsonGame
+	PlayerIDs []string `json:"players"`
 }
 
 func NewGame(board Board, activePlayerID string, players ...Player) (Game, error) {
@@ -28,30 +43,63 @@ func NewGame(board Board, activePlayerID string, players ...Player) (Game, error
 		return nil, errors.New("invalid active player id")
 	}
 	return &game{
-		players:           players,
-		board:             board,
-		activePlayerIndex: playerIndex,
+		ID:                uuid.NewV4().String(),
+		Players:           players,
+		GameBoard:         board,
+		ActivePlayerIndex: playerIndex,
 	}, nil
 }
 
 func (g *game) Next() error {
-	if len(g.players) == 0 {
+	if len(g.Players) == 0 {
 		return errors.New("no players")
 	}
 
-	player := g.players[g.activePlayerIndex]
-	move := player.Move(g.board)
-	board, err := g.board.Move(player.ID(), move)
+	player := g.Players[g.ActivePlayerIndex]
+	move := player.Move(g.GameBoard)
+	board, err := g.GameBoard.Move(player.ID(), move)
 	if err != nil {
 		return fmt.Errorf("player %s move err: %v", player.ID(), err)
 	}
 
-	g.board = board
-	g.activePlayerIndex = (g.activePlayerIndex + 1) % len(g.players)
+	g.GameBoard = board
+	g.ActivePlayerIndex = (g.ActivePlayerIndex + 1) % len(g.Players)
 
 	return nil
 }
 
 func (g game) Board() Board {
-	return g.board
+	return g.GameBoard
+}
+
+func (g game) MarshalText() (text []byte, err error) {
+	mg := marshaledGame{jsonGame: jsonGame(g)}
+	for _, p := range g.Players {
+		mg.PlayerIDs = append(mg.PlayerIDs, p.ID())
+	}
+	data, err := json.Marshal(mg)
+	if err != nil {
+		return nil, fmt.Errorf("json marshal error: %v", err)
+	}
+
+	return data, nil
+}
+
+func UnmarshalGame(data []byte, playerProvider PlayerProvider) (Game, error) {
+	mg := marshaledGame{}
+	err := json.Unmarshal(data, &mg)
+	if err != nil {
+		return nil, fmt.Errorf("json unmarshal err: %v", err)
+	}
+
+	for _, id := range mg.PlayerIDs {
+		player, err := playerProvider.PlayerFromID(id)
+		if err != nil {
+			return nil, fmt.Errorf("player %s not found", id)
+		}
+		mg.jsonGame.Players = append(mg.jsonGame.Players, player)
+	}
+
+	g := game(mg.jsonGame)
+	return &g, nil
 }

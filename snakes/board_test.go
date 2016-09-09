@@ -73,7 +73,7 @@ func TestCollisions(t *testing.T) {
 	}
 }
 
-func TestApples(t *testing.T) {
+func TestEatingApples(t *testing.T) {
 	var err error
 	b := Board{
 		Size: [2]int{3, 4},

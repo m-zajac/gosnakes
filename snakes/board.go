@@ -21,9 +21,9 @@ const (
 type Move rune
 
 type Board struct {
-	Size   [2]int
-	Snakes []Snake
-	Apples [][2]int
+	Size   [2]int   `json:"size"`
+	Snakes []Snake  `json:"snakes"`
+	Apples [][2]int `json:"apples"`
 }
 
 func (board Board) Move(id string, m Move) (Board, error) {

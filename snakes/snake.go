@@ -11,9 +11,9 @@ func (t Tail) Copy() Tail {
 }
 
 type Snake struct {
-	ID   string
-	Head [2]int
-	Tail Tail
+	ID   string `json:"id"`
+	Head [2]int `json:"head"`
+	Tail Tail   `json:"tail"`
 }
 
 func (s Snake) Body() [][2]int {

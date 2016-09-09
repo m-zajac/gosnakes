@@ -6,9 +6,21 @@ import (
 	"time"
 
 	"github.com/m-zajac/gosnakes/snakes"
+	"github.com/m-zajac/gosnakes/storage"
 )
 
 func main() {
+	// db test
+	db, err := storage.NewDB("./data")
+	if err != nil {
+		log.Fatalf("new db err: %v", err)
+	}
+	db.Write("test", "test", "entry2")
+	var dbRes string
+	db.Read("test", "test", &dbRes)
+	fmt.Printf("db res: %s\n", dbRes)
+
+	// game test
 	player := snakes.NewRandomPlayer("p1")
 	board := snakes.Board{
 		Size: [2]int{10, 10},
